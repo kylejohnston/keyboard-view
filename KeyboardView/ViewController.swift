@@ -3,6 +3,7 @@
 //  KeyboardView
 //
 //  Created by Chris Gummer on 10/14/14.
+//  Updated by Kyle Johnston for Swift 3.2 / XCode 8.3.3 on Aug 28, 2017
 //  Copyright (c) 2014 Effortless Code. All rights reserved.
 //
 
@@ -13,27 +14,28 @@ class ViewController: UIViewController {
 
     // MARK: - Lifecycle
     
-    override func viewWillAppear(animated: Bool) {
-        super.viewWillAppear(animated)
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: "keyboardWillShowNotification:", name: UIKeyboardWillShowNotification, object: nil)
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: "keyboardWillHideNotification:", name: UIKeyboardWillHideNotification, object: nil)
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShowNotification(notification:)), name: NSNotification.Name.UIKeyboardWillShow, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHideNotification(notification:)), name: NSNotification.Name.UIKeyboardWillHide, object: nil)
     }
     
-    override func viewWillDisappear(animated: Bool) {
+    override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillShowNotification, object: nil)
-        NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillHideNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name.UIKeyboardWillShow, object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name.UIKeyboardWillHide, object: nil)
     }
     
 
     // MARK: - Notifications
     
     func keyboardWillShowNotification(notification: NSNotification) {
-        updateBottomLayoutConstraintWithNotification(notification)
+        updateBottomLayoutConstraintWithNotification(notification:notification)
     }
     
     func keyboardWillHideNotification(notification: NSNotification) {
-        updateBottomLayoutConstraintWithNotification(notification)
+        updateBottomLayoutConstraintWithNotification(notification:notification)
     }
     
     
@@ -42,17 +44,19 @@ class ViewController: UIViewController {
     func updateBottomLayoutConstraintWithNotification(notification: NSNotification) {
         let userInfo = notification.userInfo!
         
-        let animationDuration = (userInfo[UIKeyboardAnimationDurationUserInfoKey] as NSNumber).doubleValue
-        let keyboardEndFrame = (userInfo[UIKeyboardFrameEndUserInfoKey] as NSValue).CGRectValue()
-        let convertedKeyboardEndFrame = view.convertRect(keyboardEndFrame, fromView: view.window)
-        let rawAnimationCurve = (notification.userInfo![UIKeyboardAnimationCurveUserInfoKey] as NSNumber).unsignedIntValue << 16
-        let animationCurve = UIViewAnimationOptions.init(UInt(rawAnimationCurve))
+        // get data from the userInfo
+        let animationDuration = (userInfo[UIKeyboardAnimationDurationUserInfoKey] as! NSNumber).doubleValue
+        let keyboardEndFrame = (userInfo[UIKeyboardFrameEndUserInfoKey] as! NSValue).cgRectValue
+        let convertedKeyboardEndFrame = view.convert(keyboardEndFrame, from: view.window)
+        let rawAnimationCurve = (notification.userInfo![UIKeyboardAnimationCurveUserInfoKey] as! NSNumber).uint32Value << 16
+        let animationCurve = UIViewAnimationOptions(rawValue: UInt(rawAnimationCurve))
         
-        bottomLayoutConstraint.constant = CGRectGetMaxY(view.bounds) - CGRectGetMinY(convertedKeyboardEndFrame)
+        bottomLayoutConstraint.constant = (view.bounds).maxY - (convertedKeyboardEndFrame).minY
         
-        UIView.animateWithDuration(animationDuration, delay: 0.0, options: .BeginFromCurrentState | animationCurve, animations: {
+        // animate the changes
+        UIView.animate(withDuration: animationDuration, delay: 0.0, options: [.beginFromCurrentState, animationCurve], animations: {
             self.view.layoutIfNeeded()
-            }, completion: nil)
+        }, completion: nil)
     }
     
     
